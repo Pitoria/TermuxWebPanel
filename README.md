@@ -1,3 +1,5 @@
+<img width="1353" height="609" alt="image" src="https://github.com/user-attachments/assets/f93e408f-ac20-450a-9e66-85e93691bf3d" />
+<img width="1366" height="609" alt="image" src="https://github.com/user-attachments/assets/74b810a3-b854-464a-8986-b239414e3818" />
 # Remote Agent Panel (Universal Orchestrator)
 
 ¡Bienvenido a **Remote Agent Panel**! 
