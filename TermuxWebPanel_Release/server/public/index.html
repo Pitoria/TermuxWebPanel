@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Termux Hub - Panel de Control</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <!-- Google Fonts removed for offline capability -->
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="libs/font-awesome/css/all.min.css">
+  <!-- xterm.css -->
+  <link rel="stylesheet" href="libs/xterm/xterm.css">
+  <!-- CSS Personalizado -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- PANTALLA DE LOGIN -->
+  <div id="login-container" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="logo-icon"><i class="fa-solid fa-terminal"></i></div>
+        <h1>TERMUX HUB</h1>
+        <p>Inicia sesión para administrar tus servidores localmente</p>
+      </div>
+      <form id="login-form">
+        <div class="input-group">
+          <label for="username"><i class="fa-solid fa-user"></i> Usuario</label>
+          <input type="text" id="username" placeholder="Ingresa tu usuario..." required value="admin">
+        </div>
+        <div class="input-group">
+          <label for="password"><i class="fa-solid fa-lock"></i> Contraseña</label>
+          <input type="password" id="password" placeholder="Ingresa tu contraseña..." required>
+        </div>
+        <button type="submit" class="btn-primary">Ingresar <i class="fa-solid fa-arrow-right"></i></button>
+      </form>
+      <p id="login-error" class="error-msg hidden"></p>
+    </div>
+  </div>
+
+  <!-- PANEL DE CONTROL PRINCIPAL -->
+  <div id="app-container" class="app-layout hidden">
+    
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i class="fa-solid fa-cube"></i>
+          <span>TERMUX HUB</span>
+        </div>
+      </div>
+      
+      <div class="menu-label">SERVIDORES</div>
+      <nav id="server-list" class="server-nav">
+        <!-- Servers populated dynamically -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="btn-add-server" class="btn-sidebar"><i class="fa-solid fa-plus-circle"></i> Nuevo Servidor</button>
+        <button id="btn-manage-users" class="btn-sidebar"><i class="fa-solid fa-users-gear"></i> Usuarios</button>
+        <button id="btn-update-all" class="btn-sidebar"><i class="fa-solid fa-cloud-arrow-up"></i> Actualizar Agentes</button>
+        <button id="btn-logout" class="btn-sidebar btn-danger-link"><i class="fa-solid fa-sign-out-alt"></i> Salir</button>
+      </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main-content">
+      
+      <!-- TOP BAR -->
+      <header class="topbar">
+        <button id="btn-hamburger" class="btn-hamburger"><i class="fa-solid fa-bars"></i></button>
+        <div class="topbar-info">
+          <h2 id="current-server-title">Dashboard General</h2>
+          <div id="server-status-badge" class="status-badge hidden">
+            <span class="status-dot"></span>
+            <span class="status-text">Desconectado</span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button id="btn-quick-buttons" class="btn-outline hidden" style="border-color: var(--accent-blue); color: var(--accent-cyan);"><i class="fa-solid fa-bolt"></i> <span class="hide-mobile">Botones</span></button>
+          <button id="btn-server-config" class="btn-outline hidden"><i class="fa-solid fa-code"></i> <span class="hide-mobile">Config Agente</span></button>
+          <button id="btn-delete-server" class="btn-danger hidden"><i class="fa-solid fa-trash"></i> <span class="hide-mobile">Eliminar</span></button>
+        </div>
+      </header>
+
+      <!-- SECCION 1: DASHBOARD GENERAL (GRID DE TODOS LOS SERVIDORES) -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="welcome-header">
+          <h3>Bienvenido al Panel de Gestión</h3>
+          <p>Maneja todos tus servidores basados en Termux desde un solo lugar de forma centralizada.</p>
+        </div>
+
+        <div id="dashboard-grid" class="dashboard-grid">
+          <!-- Populated dynamically with server cards -->
+        </div>
+      </section>
+
+      <!-- SECCION 2: VISTA DETALLADA DEL SERVIDOR -->
+      <section id="view-server" class="view-section hidden">
+        <!-- TABS DE NAVEGACION INTERNA -->
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="console"><i class="fa-solid fa-terminal"></i> Consola</button>
+          <button class="tab-btn" data-tab="files"><i class="fa-solid fa-folder-open"></i> Archivos</button>
+          <button class="tab-btn" data-tab="metrics"><i class="fa-solid fa-chart-line"></i> Recursos</button>
+        </div>
+
+        <!-- CONTENIDO DE TABS -->
+        <div class="tab-content-container">
+          
+          <!-- TAB: CONSOLA -->
+          <div id="tab-console" class="tab-pane active">
+            <div id="quick-buttons-container" class="quick-buttons-container"></div>
+            <div class="console-wrapper">
+              <div id="terminal-container"></div>
+            </div>
+            <div class="term-controls" id="term-controls">
+              <button class="ctrl-btn" data-char="\x1b" title="Escape">Esc</button>
+              <button class="ctrl-btn" data-char="\t" title="Tabulador">Tab</button>
+              <button class="ctrl-btn mod-btn" data-mod="ctrl" title="Ctrl (toggle)">Ctrl</button>
+              <button class="ctrl-btn mod-btn" data-mod="alt" title="Alt (toggle)">Alt</button>
+              <span class="ctrl-sep"></span>
+              <button class="ctrl-btn" data-char="\x2d" title="Gui&oacute;n">-</button>
+              <button class="ctrl-btn" data-char="/" title="Barra">/</button>
+              <span class="ctrl-sep"></span>
+              <button class="ctrl-btn" data-char="\x1b[A" title="Flecha Arriba">&uarr;</button>
+              <button class="ctrl-btn" data-char="\x1b[B" title="Flecha Abajo">&darr;</button>
+            </div>
+            <div class="console-tip">
+              <i class="fa-solid fa-circle-info"></i> Ctrl/Alt se activan para la próxima tecla. Botones útiles si estás desde el celular.
+            </div>
+          </div>
+
+          <!-- TAB: ARCHIVOS -->
+          <div id="tab-files" class="tab-pane">
+            <div class="files-header">
+              <div class="breadcrumbs" id="file-breadcrumbs">
+                <!-- Populated dynamically -->
+              </div>
+              <div class="file-actions">
+                <button id="btn-new-file" class="btn-small btn-outline"><i class="fa-solid fa-file-circle-plus"></i> Nuevo Archivo</button>
+                <button id="btn-new-folder" class="btn-small btn-outline"><i class="fa-solid fa-folder-plus"></i> Nueva Carpeta</button>
+                <button id="btn-upload-file" class="btn-small btn-primary"><i class="fa-solid fa-upload"></i> Subir Archivo</button>
+                <input type="file" id="file-uploader" class="hidden">
+              </div>
+            </div>
+
+            <div class="files-table-container">
+              <table class="files-table">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Tamaño</th>
+                    <th>Modificado</th>
+                    <th class="actions-col">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="files-list">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB: RECURSOS -->
+          <div id="tab-metrics" class="tab-pane">
+            <div class="metrics-grid">
+              
+              <!-- Tarjeta CPU -->
+              <div class="metric-card">
+                <div class="metric-icon cpu-color"><i class="fa-solid fa-microchip"></i></div>
+                <div class="metric-details">
+                  <h4>Uso de CPU</h4>
+                  <div class="metric-value" id="metrics-cpu-val">0%</div>
+                  <div class="progress-bar-bg">
+                    <div id="metrics-cpu-progress" class="progress-bar cpu-bg" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tarjeta RAM -->
+              <div class="metric-card">
+                <div class="metric-icon ram-color"><i class="fa-solid fa-memory"></i></div>
+                <div class="metric-details">
+                  <h4>Memoria RAM</h4>
+                  <div class="metric-value" id="metrics-ram-val">0 MB / 0 MB</div>
+                  <div class="progress-bar-bg">
+                    <div id="metrics-ram-progress" class="progress-bar ram-bg" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tarjeta Almacenamiento -->
+              <div class="metric-card">
+                <div class="metric-icon disk-color"><i class="fa-solid fa-hard-drive"></i></div>
+                <div class="metric-details">
+                  <h4>Almacenamiento</h4>
+                  <div class="metric-value" id="metrics-disk-val">0 GB / 0 GB</div>
+                  <div class="progress-bar-bg">
+                    <div id="metrics-disk-progress" class="progress-bar disk-bg" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tarjeta Info General -->
+              <div class="metric-card">
+                <div class="metric-icon info-color"><i class="fa-solid fa-server"></i></div>
+                <div class="metric-details">
+                  <h4>Información</h4>
+                  <div class="info-list">
+                    <div><span>IP Celular:</span> <strong id="info-ip">-</strong></div>
+                    <div><span>Batería:</span> <strong id="info-battery">-</strong></div>
+                    <div><span>Tiempo Activo:</span> <strong id="info-uptime">-</strong></div>
+                    <div><span>Versión Agente:</span> <strong id="info-version">-</strong></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Gráfico Histórico -->
+            <div class="chart-container">
+              <h3>Historial de Recursos</h3>
+              <canvas id="resource-chart"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL: AGREGAR SERVIDOR -->
+  <div id="modal-add" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Registrar Nuevo Servidor Termux</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-add-server">
+          <div class="input-group">
+            <label for="new-server-name">Nombre del Servidor</label>
+            <input type="text" id="new-server-name" placeholder="Ej. Minecraft Celular" required>
+          </div>
+          <button type="submit" class="btn-primary">Generar Credenciales <i class="fa-solid fa-magic"></i></button>
+        </form>
+
+        <div id="credentials-output" class="credentials-box hidden">
+          <h4>¡Servidor Registrado Exitosamente!</h4>
+          <p>Para conectar tu celular, sigue estos pasos:</p>
+          
+          <ol class="steps-list">
+            <li>
+              Copia el archivo del agente en la carpeta principal de tu Termux:
+              <pre class="code-snippet"><code>pkg install python -y
+curl -o agent.py http://<span class="server-host-placeholder">localhost:3000</span>/agent.py</code></pre>
+            </li>
+            <li>
+              Crea el archivo de configuración <code class="file-name">config.json</code> con los siguientes datos:
+              <pre class="code-snippet"><code id="config-json-output"></code></pre>
+            </li>
+            <li>
+              Ejecuta el agente en segundo plano en tu Termux:
+              <pre class="code-snippet"><code>python agent.py</code></pre>
+            </li>
+          </ol>
+          
+          <button id="btn-close-credentials" class="btn-secondary w-full">Completado</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MOSTRAR CONFIGURACION DEL AGENTE -->
+  <div id="modal-config" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Configuración del Agente</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Crea un archivo llamado <code>config.json</code> en el mismo directorio de tu agente de Termux con este contenido:</p>
+        <pre class="code-snippet"><code id="config-agent-json"></code></pre>
+        <button class="btn-secondary w-full btn-close-modal-btn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURACION BOTONES RAPIDOS -->
+  <div id="modal-quick-buttons-config" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Configurar Botones Rápidos</h3>
+        <button class="btn-close-modal"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 15px; font-size: 0.9rem; color: var(--text-muted);">
+          Crea botones para ejecutar comandos frecuentes. Agrega <code>\n</code> al final para simular Enter.
+        </p>
+        <div id="qb-list" class="qb-list">
+          <!-- Populated dynamically -->
+        </div>
+        <button id="btn-add-qb" class="btn-outline w-full" style="margin-top: 15px;"><i class="fa-solid fa-plus"></i> Agregar Botón</button>
+        
+        <div class="form-actions-stack" style="margin-top: 25px;">
+          <button id="btn-save-qb" class="btn-primary w-full"><i class="fa-solid fa-save"></i> Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITOR DE ARCHIVOS -->
+  <div id="modal-editor" class="modal hidden">
+    <div class="modal-content editor-modal-content">
+      <div class="modal-header">
+        <h3 id="editor-title">Editar Archivo</h3>
+        <button class="btn-close-modal" id="btn-close-editor"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div class="modal-body editor-body">
+        <textarea id="editor-textarea" spellcheck="false"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-editor-cancel" class="btn-secondary">Cancelar</button>
+        <button id="btn-editor-save" class="btn-primary"><i class="fa-solid fa-save"></i> Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADMINISTRACION DE USUARIOS -->
+  <div id="modal-users" class="modal hidden">
+    <div class="modal-content users-modal-content">
+      <div class="modal-header">
+        <h3>Administrar Usuarios</h3>
+        <button class="btn-close-modal" id="btn-close-users"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="users-split-container">
+          <!-- Columna Izquierda: Lista de Usuarios -->
+          <div class="users-list-section">
+            <div class="section-header-flex">
+              <h4>Usuarios Registrados</h4>
+            </div>
+            <div class="users-table-wrapper">
+              <table class="users-table">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Rol</th>
+                    <th>API</th>
+                  </tr>
+                </thead>
+                <tbody id="users-list-tbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Columna Derecha: Formulario Dinámico -->
+          <div class="users-add-section">
+            <div class="section-header-flex">
+              <h4 id="user-form-title">Nuevo Usuario</h4>
+              <button id="btn-cancel-edit" class="btn-small btn-outline hidden">Crear Nuevo</button>
+            </div>
+            <form id="user-detail-form">
+              <div class="input-group">
+                <label for="edit-username"><i class="fa-solid fa-user"></i> Nombre de Usuario</label>
+                <input type="text" id="edit-username" placeholder="Ej: fido" required autocomplete="off">
+              </div>
+              <div class="input-group">
+                <label for="edit-password" id="label-edit-password"><i class="fa-solid fa-lock"></i> Contraseña</label>
+                <input type="password" id="edit-password" placeholder="Contraseña..." required>
+              </div>
+              <div class="input-group">
+                <label for="edit-role"><i class="fa-solid fa-user-shield"></i> Rol</label>
+                <select id="edit-role" required>
+                  <option value="admin">Administrador</option>
+                  <option value="user" selected>Usuario Regular</option>
+                </select>
+              </div>
+              
+              <!-- Sección de Permisos por Servidor -->
+              <div id="permissions-section" class="permissions-section">
+                <h5>Asignación y Permisos de Servidores</h5>
+                <div id="servers-permissions-list" class="servers-permissions-list">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+              
+              <!-- API Keys Section -->
+              <div id="apikeys-section" class="permissions-section" style="display:none;">
+                <h5>API Keys</h5>
+                <div id="apikeys-list" class="servers-permissions-list">
+                  <div style="color: var(--text-muted); font-size: 0.85rem;">No hay API keys generadas.</div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <button type="button" id="btn-gen-apikey" class="btn-small btn-outline"><i class="fa-solid fa-key"></i> Generar API Key</button>
+                </div>
+              </div>
+              
+              <div class="form-actions-stack">
+                <button type="submit" id="btn-submit-user" class="btn-primary w-full"><i class="fa-solid fa-user-plus"></i> Crear Usuario</button>
+                <button type="button" id="btn-delete-user" class="btn-danger w-full hidden"><i class="fa-solid fa-user-xmark"></i> Eliminar Usuario</button>
+              </div>
+            </form>
+            <p id="user-form-error" class="error-msg hidden"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+
+  <!-- Librería Chart.js -->
+  <script src="libs/chartjs/chart.js"></script>
+  <!-- xterm.js y xterm-addon-fit -->
+  <script src="libs/xterm/xterm.js"></script>
+  <script src="libs/xterm/xterm-addon-fit.js"></script>
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>
